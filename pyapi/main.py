@@ -50,7 +50,7 @@ root_logger = logging.getLogger()
 logger = ModuleLoggerAdapter(root_logger, {"event_type": "main"})
 
 
-stop_event = asyncio.Event() #Начат процесс завершения работы программы
+stop_event = asyncio.Event()
 
 def _signal_handler():
     logger.info("Запущен процесс завершения PyAPI")
@@ -60,7 +60,7 @@ DB_HOST=os.environ.get(f"DB_HOST","")
 DB_USER=os.environ.get(f"DB_USER","")
 DB_PASS=os.environ.get(f"DB_PASS","")
 DB_DATABASE=os.environ.get(f"DB_DATABASE","")
-
+print(DB_DATABASE)
 DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_DATABASE}"
 JWT_SECRET = os.environ.get(f"JWT_SECRET","VerRytStrongJWT_SECRETsdvkt@DkdkFE$$")
 ALGORITHM = "HS256"
@@ -76,7 +76,7 @@ app = FastAPI(title="PyAPI",version=__version__)
 Base.metadata.create_all(bind=engine)
 
 class User(Base):
-    __tablename__ = "users"  # исправлено
+    __tablename__ = "users"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     email = Column(String, unique=True, index=True, nullable=False)
@@ -185,7 +185,6 @@ routerAuth = APIRouter(
 
 protected_router = APIRouter(
     dependencies=[Depends(get_current_user)],
-    #include_in_schema=False  # Маршруты не будут в документации
 )
 
 @routerAuth.post("/api/auth/signup", response_model=Token)
@@ -216,7 +215,6 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
 @protected_router.get("/api/users/me", response_model=UserOut)
 def read_profile(current_user: User = Depends(get_current_user)):
-    # Просто возвращаем текущего пользователя в виде Pydantic модели
     return  UserOut.model_validate(current_user)
 
 @protected_router.patch("/api/users/me", response_model=UserOut)
@@ -227,12 +225,11 @@ def update_profile(
 ):
     for field, value in user_update.model_dump(exclude_unset=True).items():
         if isinstance(value, Enum):
-            value = value.value  # берем строковое значение
+            value = value.value  
         setattr(current_user, field, value)
     current_user.updatedAt = datetime.now(timezone.utc)
     db.commit()
     db.refresh(current_user)
-    # Возвращаем обновлённого пользователя через Pydantic модель
     return UserOut.model_validate(current_user)
 
 
